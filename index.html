@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>Game</title>
+    <script type='text/javascript' src='phaser.min.js'></script>
+</head>
+<body>
+<script type='text/javascript'>
+
+    //Game constants
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 600;
+
+    /*var menu = {
+        preload: function(){
+           
+        },
+
+        create: function(){
+
+        },
+
+        update: function(){
+
+        }
+
+
+    };*/
+
+    var main = {
+        preload: function() {
+            //Load assets to be used by game
+            game.load.image('paddle', 'paddle.png');
+            game.load.image('brick0', 'png/element_blue_rectangle.png');
+            game.load.image('brick1', 'png/element_green_rectangle.png');
+            game.load.image('brick2', 'png/element_grey_rectangle.png');
+            game.load.image('brick3', 'png/element_purple_rectangle.png');
+            game.load.image('brick4', 'png/element_red_rectangle.png');
+            game.load.image('brick5', 'png/element_yellow_rectangle.png');
+            game.load.image('ball', 'ball.png');
+            this.debugMode = false;
+        },
+
+        create: function() {
+            // Makes the background a nice blue colour
+            game.stage.backgroundColor = "#3598db";
+
+            // Starts the physics system so we can use collision and velocity
+            game.physics.startSystem(Phaser.Physics.Arcade);
+
+            // Tells the physics engine to watch all our game objects
+            game.world.enableBody = true;
+
+            // Create objects that keep track of whether the arrow keys are pressed
+            this.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+            this.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+            this.fire = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+            // Adds the paddle at the bottom of the screen
+            this.paddle = game.add.sprite(-700, 500, 'paddle');
+
+            // Makes sure the paddle won't move when the ball collides with it
+            this.paddle.body.immovable = true;
+            this.paddle.body.collideWorldBounds = true;
+
+            // Creates the ball
+            this.ball = game.add.sprite(-600, 400, 'ball');
+
+            // Sets the balls starting velocity
+            this.ball.body.velocity.x = 0;
+            this.ball.body.velocity.y = 0;
+
+            // Tells the ball to bounce off of things and the edges of the "world"
+            this.ball.body.bounce.setTo(1);
+            this.ball.body.collideWorldBounds = true;
+            
+            //Tells the ball to be a circle in our physics engine
+            //this.ball.body.setCircle(11);
+
+            //Set initial ball and paddle position
+            this.setPaddleBall(this.ball, this.paddle);
+
+            // Creates a group to contain all of the bricks
+            this.bricks = game.add.group();
+            
+            //set the levels brick layout
+            this.createBrickLayout();
+
+            //Number of lives you have
+            this.lives = 3;
+
+            //Score
+            this.score = 0;
+        },
+
+        update: function() {
+            // Paddle movement
+            if (this.left.isDown) {
+                if(this.paddle.body.velocity.x >= -600) this.paddle.body.velocity.x -= 60;
+            }
+            else if (this.right.isDown){
+                if(this.paddle.body.velocity.x <= 600) this.paddle.body.velocity.x += 60;
+            } 
+
+            // Stops the paddle when no keys are pressed
+            else this.paddle.body.velocity.x = 0;
+
+            // Ball follows the paddle before you fire it
+            if(this.ball.body.velocity.y == 0){
+                this.ball.body.velocity.x = this.paddle.body.velocity.x;
+            }
+
+            // Fire the ball
+            if(this.fire.isDown && this.ball.body.velocity.y == 0){
+                this.ball.body.velocity.x = this.paddle.body.velocity.x / 2;
+                this.ball.body.velocity.y = -300;
+                //If paddle isn't moving set random direction to fire
+                if(this.paddle.body.velocity.x == 0) {
+                    if(Math.floor(Math.random()*2) == 0)
+                    this.ball.body.velocity.x = 100;
+                    else
+                    this.ball.body.velocity.x = -100;
+                }
+                console.log("Fire the ball");
+            }
+
+            // Detect collisions between the paddle and the ball
+            game.physics.arcade.collide(this.paddle, this.ball, this.volley, null, this);
+
+            // Calls the "hit" function when the ball collides with a brick
+            game.physics.arcade.collide(this.ball, this.bricks, this.hit, null, this);
+
+            // Restart the game if the ball is below the paddle
+            if (this.lives < 0)
+                game.state.start('main');
+            else if(this.ball.body.y > this.paddle.body.y){
+                this.lives--;
+                this.ball.body.velocity.x = 0;
+                this.ball.body.velocity.y = 0;
+                this.setPaddleBall(this.ball, this.paddle);
+            }
+                
+        },
+
+        hit: function(ball, brick) {
+            this.score += ((brick.health+1)*20)
+            // reduce health of brick or kill it if dead
+            brick.health--;
+            if(brick.health < 0) brick.kill();
+            else{    
+                brick.loadTexture('brick' + brick.health);
+            }
+        },
+
+        volley: function(ball, paddle){
+            //console.log("Ball Center: " + ball.body.center, "Paddle Center: " + paddle.body.center)
+            // Aim the ball based on where it hits the paddle
+            if(ball.body.center.x < paddle.body.center.x) {
+                
+                console.log("Right");
+            } else {console.log("Left");
+        }
+            
+        },
+
+        setPaddleBall: function(ball, paddle){
+            // Set Paddle to center and ball above paddle
+            /*console.log("Paddle width: " + paddle.body.width, "Paddle height: " + paddle.body.height);
+            console.log("Ball width: " + ball.body.width, "Ball height: " + ball.body.height);
+            console.log("Game width: " + GAME_WIDTH, "Game height: " + GAME_HEIGHT);*/
+            //console.dir(paddle.body);
+            paddle.y = GAME_HEIGHT - 50;
+            paddle.x = (GAME_WIDTH / 2) - (paddle.body.width / 2);
+            //console.log("Paddle.y: " + paddle.y);
+            //ball.body.velocity.x = 0;
+            //ball.body.velocity.y = 0;
+            ball.y = paddle.y - ball.height - 5;
+            ball.x = paddle.x + (paddle.width/2) - (ball.width/2);
+            //console.log("Ball.y: " + ball.y);
+        },
+
+        createBrickLayout: function(){
+
+            let tempBrick = game.add.sprite(-1000, -1000, 'brick0');
+            let maxRow = Math.floor((GAME_WIDTH / tempBrick.width));
+            let maxColumns = Math.floor((GAME_HEIGHT/tempBrick.height))/2;
+            let padding = (GAME_WIDTH % (maxRow*tempBrick.width)) / maxRow;
+
+            // Creates 25 bricks and adds them to the group, 5 per row
+            for (var i=0; i<maxColumns; i++) {
+                let health = Math.floor(Math.random()*6);
+                for (var n=0; n<maxRow; n++) {
+                    // Creates the individual brick at specified location
+                    
+                    let brick = game.add.sprite(n*padding + n*tempBrick.width, i*padding + i*tempBrick.height, 'brick'+ health);
+                    brick.health = 0;
+
+                    // Keeps the brick from moving when the ball strikes it
+                    brick.body.immovable = true;
+
+                    // Add the brick to the group
+                    this.bricks.add(brick);
+                }
+            }
+
+            tempBrick.kill();
+        },
+
+        render: function(){
+            if(this.debugMode == true){
+                game.debug.body(this.paddle);
+                game.debug.body(this.ball);
+                game.debug.spriteInfo(this.paddle, 32, 450);
+                game.debug.spriteInfo(this.ball, 500, 450);
+            }
+        }
+    };
+
+    var game = new Phaser.Game(GAME_WIDTH, GAME_HEIGHT);
+    game.state.add('main', main);
+    //game.state.add('menu', menu);
+    //game.state.add('gameOver', gameOver);
+    game.state.start('main');
+</script>
+</body>
+</html>
